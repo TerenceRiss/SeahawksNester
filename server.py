@@ -1,10 +1,13 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from database import init_db, insert_data, fetch_data
 from prometheus_client import Counter, generate_latest, CollectorRegistry, Gauge
 import json
 import logging
 
-app = Flask(__name__)
+app = Flask(__name__,
+            static_url_path='', 
+            static_folder='static',
+            template_folder='templates')
 
 # Configuration des logs
 logging.basicConfig(
@@ -96,113 +99,16 @@ def view_data():
         logging.info("Données pour /view-data récupérées avec succès.")
 
         # Conversion des données pour Chart.js
-        ip_labels_json = json.dumps(list(ip_distribution.keys()))
-        ip_data_json = json.dumps(list(ip_distribution.values()))
-        total_up_json = json.dumps(total_up)  # Conversion sécurisée
-        print(f'total_up_json: {total_up_json}')
-        total_down_json = json.dumps(total_down)  # Conversion sécurisée
-
-        # Génération du HTML
-        html = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        </head>
-        <body>
-            <div class="container">
-                <h1>Données scannées</h1>
-                <form method="GET" action="/view-data" class="mb-4">
-                    <div class="row g-3">
-                        <div class="col">
-                            <input type="text" name="ip" class="form-control" placeholder="Plage IP (ex: 192.168.0.)" value="{ip_filter or ''}">
-                        </div>
-                        <div class="col">
-                            <select name="state" class="form-control">
-                                <option value="">Tous les états</option>
-                                <option value="up" {'selected' if state_filter == 'up' else ''}>Up</option>
-                                <option value="down" {'selected' if state_filter == 'down' else ''}>Down</option>
-                            </select>
-                        </div>
-                        <div class="col">
-                            <button type="submit" class="btn btn-primary">Filtrer</button>
-                        </div>
-                    </div>
-                </form>
-
-                <!-- Graphiques -->
-                <div class="row">
-                    <div class="col-md-6">
-                        <h3>Proportion d'hôtes Up vs Down</h3>
-                        <canvas id="stateChart"></canvas>
-                    </div>
-                    <div class="col-md-6">
-                        <h3>Répartition des plages IP</h3>
-                        <canvas id="ipChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Tableau des données -->
-                <h2>Tableau des données</h2>
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>IP</th>
-                            <th>Hostname</th>
-                            <th>State</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        """
-        for row in rows:
-            html += f"<tr><td>{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td><td>{row[3]}</td></tr>"
-        html += """
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Script pour les graphiques -->
-            <script>
-        """
-        html+=f'const totalUp = {total_up_json};'  
-        html+=f'const totalDown = {total_down_json};'  
-        html+=f'const ipLabels = {ip_labels_json};'
-        html+=f'const ipData = {ip_data_json};'
-        html+="""
-                // Graphique d'état
-                const pieChart = document.getElementById('stateChart')
-                console.log(pieChart)
-                new Chart(pieChart, {
-                    type: 'pie',
-                    data: {
-                        labels: ['Up', 'Down'],
-                        datasets: [{
-                            label: "Nombre d'hôtes",
-                            data: [totalUp, totalDown],
-                            backgroundColor: ['#36A2EB', '#FF6384'],
-                        }]
-                    }
-                });
-
-                // Graphique des plages IP
-                new Chart(document.getElementById('ipChart'), {
-                    type: 'bar',
-                    data: {
-                        labels: ipLabels,
-                        datasets: [{
-                            label: "Nombre d'hôtes par plage IP",
-                            data: ipData,
-                            backgroundColor: '#FFCE56',
-                        }]
-                    }
-                });
-            </script>
-        </body>
-        </html>
-        """
-        return html
+        return render_template(
+            "view_data.html",
+            rows=rows,
+            total_up = json.dumps(total_up),  # Conversion sécurisée
+            total_down = json.dumps(total_down),  # Conversion sécurisée
+            ip_labels_json=json.dumps(list(ip_distribution.keys())),
+            ip_data_json=json.dumps(list(ip_distribution.values())),
+            state_filter=state_filter,
+            ip_filter=ip_filter
+        )
     except Exception as e:
         logging.error(f"Erreur lors de la génération des données pour /view-data : {e}")
         return jsonify({"message": "Erreur interne du serveur", "details": str(e)}), 500
