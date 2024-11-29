@@ -8,15 +8,40 @@
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
+            padding: 0;
+            background-color: #f8d7da;
+            color: #842029;
         }
         h1 {
-            color: red;
+            color: #842029;
+        }
+        p {
+            font-size: 18px;
+        }
+        .error-container {
+            padding: 20px;
+            border: 1px solid #f5c2c7;
+            border-radius: 5px;
+            background-color: #f8d7da;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #842029;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .back-link:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
-    <h1>Erreur</h1>
-    <p>{{ message }}</p>
-    <a href="/">Retourner à l'accueil</a>
+    <div class="error-container">
+        <h1>Une erreur est survenue</h1>
+        <p>{{ message }}</p>
+        <a href="/" class="back-link">Retourner à l'accueil</a>
+    </div>
 </body>
 </html>

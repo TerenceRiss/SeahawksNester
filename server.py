@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, render_template
-from database import init_db, insert_data, fetch_data
+from database import init_db, fetch_hosts, sync_inventory
 from prometheus_client import Counter, generate_latest, CollectorRegistry, Gauge
 import json
 import logging
@@ -50,16 +50,28 @@ def receive_data():
     try:
         data = request.get_json()
         logging.info(f"Données reçues : {data}")
-        insert_data(data)
+
+        # Synchroniser les résultats des scans
+        sync_inventory(data.get("hosts", []))
+
+        logging.info("Données synchronisées et sauvegardées avec succès.")
+        return jsonify({"message": "Données reçues et sauvegardées avec succès!", "status": "success"}), 200
+    except Exception as e:
+        logging.error(f"Erreur lors de la réception des données : {e}")
+        return jsonify({"message": "Erreur lors de la réception des données", "status": "error"}), 500
+
+
+        # Synchroniser l'inventaire des hôtes
+        sync_inventory(hosts)
 
         # Mise à jour des métriques
         scan_requests_total.inc()
-        hosts_up = len([host for host in data if host.get("state") == "up"])
-        hosts_down = len([host for host in data if host.get("state") == "down"])
+        hosts_up = len([host for host in hosts if host.get("state") == "up"])
+        hosts_down = len([host for host in hosts if host.get("state") == "down"])
         hosts_up_total.set(hosts_up)
         hosts_down_total.set(hosts_down)
 
-        logging.info("Données sauvegardées avec succès dans la base.")
+        logging.info("Données synchronisées et métriques mises à jour.")
         return jsonify({"message": "Données reçues et sauvegardées avec succès!", "status": "success"}), 200
     except Exception as e:
         logging.error(f"Erreur lors de la réception des données : {e}")
@@ -82,28 +94,28 @@ def view_data():
         state_filter = request.args.get("state")
         ip_filter = request.args.get("ip")
 
-        rows = fetch_data()
+        rows = fetch_hosts()
         if state_filter:
-            rows = [row for row in rows if row[3] == state_filter]
+            rows = [row for row in rows if row["state"] == state_filter]
         if ip_filter:
-            rows = [row for row in rows if row[1].startswith(ip_filter)]
+            rows = [row for row in rows if row["ip"].startswith(ip_filter)]
 
         # Calcul des métriques pour les graphiques
-        total_up = len([row for row in rows if row[3] == "up"])
-        total_down = len([row for row in rows if row[3] == "down"])
+        total_up = len([row for row in rows if row["state"] == "up"])
+        total_down = len([row for row in rows if row["state"] == "down"])
         ip_distribution = {}
         for row in rows:
-            ip_prefix = ".".join(row[1].split(".")[:3])
+            ip_prefix = ".".join(row["ip"].split(".")[:3])
             ip_distribution[ip_prefix] = ip_distribution.get(ip_prefix, 0) + 1
 
-        logging.info("Données pour /view-data récupérées avec succès.")
+        logging.info(f"Données récupérées pour le tableau: {rows}")
+        logging.info(f"Distribution IP : {ip_distribution}")
 
-        # Conversion des données pour Chart.js
         return render_template(
             "view_data.html",
             rows=rows,
-            total_up = json.dumps(total_up),  # Conversion sécurisée
-            total_down = json.dumps(total_down),  # Conversion sécurisée
+            total_up=json.dumps(total_up),
+            total_down=json.dumps(total_down),
             ip_labels_json=json.dumps(list(ip_distribution.keys())),
             ip_data_json=json.dumps(list(ip_distribution.values())),
             state_filter=state_filter,
