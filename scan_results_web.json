@@ -1,52 +1,8 @@
 {
     "hosts": [
         {
-            "ip": "192.168.0.11",
-            "hostname": "Unknown",
-            "state": "up",
-            "ports": [
-                "22/ssh",
-                "80/http",
-                "443/https",
-                "3389/ms-wbt-server"
-            ]
-        },
-        {
-            "ip": "192.168.0.115",
-            "hostname": "Unknown",
-            "state": "up",
-            "ports": [
-                "22/ssh",
-                "80/http",
-                "443/https",
-                "3389/ms-wbt-server"
-            ]
-        },
-        {
-            "ip": "192.168.0.150",
-            "hostname": "Unknown",
-            "state": "up",
-            "ports": [
-                "22/ssh",
-                "80/http",
-                "443/https",
-                "3389/ms-wbt-server"
-            ]
-        },
-        {
-            "ip": "192.168.0.254",
-            "hostname": "Unknown",
-            "state": "up",
-            "ports": [
-                "22/ssh",
-                "80/http",
-                "443/https",
-                "3389/ms-wbt-server"
-            ]
-        },
-        {
-            "ip": "192.168.0.71",
-            "hostname": "Unknown",
+            "ip": "1.1.1.1",
+            "hostname": "one.one.one.one",
             "state": "up",
             "ports": [
                 "22/ssh",
@@ -56,5 +12,5 @@
             ]
         }
     ],
-    "latency_ms": 16.92
+    "latency_ms": 18.99
 }

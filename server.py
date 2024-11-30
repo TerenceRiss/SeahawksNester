@@ -4,17 +4,19 @@ from prometheus_client import Counter, generate_latest, CollectorRegistry, Gauge
 import json
 import logging
 
-app = Flask(__name__,
-            static_url_path='', 
-            static_folder='static',
-            template_folder='templates')
+app = Flask(
+    __name__,
+    static_url_path="",
+    static_folder="static",
+    template_folder="templates",
+)
 
 # Configuration des logs
 logging.basicConfig(
     level=logging.DEBUG,
     filename="server_logs.log",
     filemode="a",
-    format="%(asctime)s - %(levelname)s - %(message)s"
+    format="%(asctime)s - %(levelname)s - %(message)s",
 )
 
 # Clé API pour sécuriser l'accès
@@ -22,9 +24,15 @@ API_TOKEN = "my_secret_api_token"
 
 # Initialisation des métriques Prometheus
 registry = CollectorRegistry()
-scan_requests_total = Counter('scan_requests_total', 'Nombre total de requêtes de scan', registry=registry)
-hosts_up_total = Gauge('hosts_up_total', 'Nombre total d\'hôtes en état "up"', registry=registry)
-hosts_down_total = Gauge('hosts_down_total', 'Nombre total d\'hôtes en état "down"', registry=registry)
+scan_requests_total = Counter(
+    "scan_requests_total", "Nombre total de requêtes de scan", registry=registry
+)
+hosts_up_total = Gauge(
+    "hosts_up_total", 'Nombre total d\'hôtes en état "up"', registry=registry
+)
+hosts_down_total = Gauge(
+    "hosts_down_total", 'Nombre total d\'hôtes en état "down"', registry=registry
+)
 
 # Fonction utilitaire pour vérifier le token
 def authenticate(request):
@@ -54,24 +62,14 @@ def receive_data():
         # Synchroniser les résultats des scans
         sync_inventory(data.get("hosts", []))
 
-        logging.info("Données synchronisées et sauvegardées avec succès.")
-        return jsonify({"message": "Données reçues et sauvegardées avec succès!", "status": "success"}), 200
-    except Exception as e:
-        logging.error(f"Erreur lors de la réception des données : {e}")
-        return jsonify({"message": "Erreur lors de la réception des données", "status": "error"}), 500
-
-
-        # Synchroniser l'inventaire des hôtes
-        sync_inventory(hosts)
-
         # Mise à jour des métriques
         scan_requests_total.inc()
-        hosts_up = len([host for host in hosts if host.get("state") == "up"])
-        hosts_down = len([host for host in hosts if host.get("state") == "down"])
+        hosts_up = len([host for host in data.get("hosts", []) if host.get("state") == "up"])
+        hosts_down = len([host for host in data.get("hosts", []) if host.get("state") == "down"])
         hosts_up_total.set(hosts_up)
         hosts_down_total.set(hosts_down)
 
-        logging.info("Données synchronisées et métriques mises à jour.")
+        logging.info("Données synchronisées et sauvegardées avec succès.")
         return jsonify({"message": "Données reçues et sauvegardées avec succès!", "status": "success"}), 200
     except Exception as e:
         logging.error(f"Erreur lors de la réception des données : {e}")
@@ -82,7 +80,7 @@ def receive_data():
 def metrics():
     try:
         logging.info("Requête GET sur la route /metrics")
-        return generate_latest(registry), 200, {'Content-Type': 'text/plain; charset=utf-8'}
+        return generate_latest(registry), 200, {"Content-Type": "text/plain; charset=utf-8"}
     except Exception as e:
         logging.error(f"Erreur lors de la génération des métriques : {e}")
         return jsonify({"message": "Erreur lors de la génération des métriques", "status": "error"}), 500
@@ -119,7 +117,7 @@ def view_data():
             ip_labels_json=json.dumps(list(ip_distribution.keys())),
             ip_data_json=json.dumps(list(ip_distribution.values())),
             state_filter=state_filter,
-            ip_filter=ip_filter
+            ip_filter=ip_filter,
         )
     except Exception as e:
         logging.error(f"Erreur lors de la génération des données pour /view-data : {e}")

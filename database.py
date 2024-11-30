@@ -33,8 +33,8 @@ def init_db():
             host_id INTEGER,
             state TEXT,
             ports TEXT,
-            FOREIGN KEY (scan_id) REFERENCES scans(id),
-            FOREIGN KEY (host_id) REFERENCES hosts(id)
+            FOREIGN KEY (scan_id) REFERENCES scans(id) ON DELETE CASCADE,
+            FOREIGN KEY (host_id) REFERENCES hosts(id) ON DELETE CASCADE
         )
     """)
 
@@ -87,9 +87,6 @@ def insert_scan_result(scan_id, host_id, state, ports):
 
 # Fonction pour synchroniser les résultats d'un scan
 def sync_inventory(scan_results):
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-
     # Insérer un nouveau scan
     scan_id = insert_scan()
 
@@ -105,8 +102,6 @@ def sync_inventory(scan_results):
             ports=", ".join(result.get("ports", []))
         )
 
-    conn.close()
-
 # Fonction pour récupérer tous les hôtes avec leurs derniers états
 def fetch_hosts():
     conn = sqlite3.connect(DB_NAME)
@@ -118,8 +113,33 @@ def fetch_hosts():
         FROM hosts h
         JOIN scan_results sr ON h.id = sr.host_id
         JOIN scans s ON sr.scan_id = s.id
+        WHERE sr.id = (
+            SELECT MAX(sr2.id)
+            FROM scan_results sr2
+            WHERE sr2.host_id = h.id
+        )
     """)
     rows = cursor.fetchall()
 
     conn.close()
     return [{"ip": row[0], "hostname": row[1], "state": row[2], "ports": row[3], "last_scan": row[4]} for row in rows]
+
+# Fonction pour récupérer les tendances des scans
+def get_scan_trends():
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    # Obtenir les données des tendances
+    cursor.execute("""
+        SELECT s.timestamp,
+               SUM(CASE WHEN sr.state = 'up' THEN 1 ELSE 0 END) AS up_count,
+               SUM(CASE WHEN sr.state = 'down' THEN 1 ELSE 0 END) AS down_count
+        FROM scans s
+        LEFT JOIN scan_results sr ON s.id = sr.scan_id
+        GROUP BY s.id
+        ORDER BY s.timestamp
+    """)
+    trends = cursor.fetchall()
+
+    conn.close()
+    return [{"timestamp": row[0], "up_count": row[1], "down_count": row[2]} for row in trends]
