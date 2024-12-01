@@ -9,20 +9,26 @@
             font-family: Arial, sans-serif;
             margin: 20px;
             padding: 0;
+            background-color: #f8f9fa;
         }
         h1 {
             color: navy;
             margin-bottom: 20px;
+            text-align: center;
         }
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         th, td {
             border: 1px solid #ddd;
             padding: 8px;
-            text-align: left;
+            text-align: center;
         }
         th {
             background-color: navy;
@@ -31,19 +37,56 @@
         tr:nth-child(even) {
             background-color: #f2f2f2;
         }
+        tr:hover {
+            background-color: #e9ecef;
+        }
         .latency {
             margin-top: 20px;
             font-size: 18px;
+            padding: 10px;
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 5px;
+            color: #0c5460;
+            text-align: center;
         }
         .back-link {
             display: inline-block;
             margin-top: 20px;
-            color: navy;
+            padding: 10px 20px;
+            color: white;
+            background-color: navy;
             text-decoration: none;
+            border-radius: 5px;
             font-size: 16px;
+            text-align: center;
         }
         .back-link:hover {
-            text-decoration: underline;
+            background-color: #003366;
+        }
+        .badge {
+            padding: 5px 10px;
+            border-radius: 5px;
+            color: white;
+            font-size: 14px;
+        }
+        .badge-up {
+            background-color: green;
+        }
+        .badge-down {
+            background-color: red;
+        }
+        td ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        td ul li {
+            background: #f8f9fa;
+            padding: 5px;
+            margin-bottom: 3px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
         }
     </style>
 </head>
@@ -70,10 +113,18 @@
             <tr>
                 <td>{{ host.ip }}</td>
                 <td>{{ host.hostname }}</td>
-                <td>{{ host.state }}</td>
+                <td>
+                    <span class="badge {% if host.state == 'up' %}badge-up{% else %}badge-down{% endif %}">
+                        {{ host.state | upper }}
+                    </span>
+                </td>
                 <td>
                     {% if host.ports %}
-                        {{ host.ports | join(', ') }}
+                        <ul>
+                            {% for port in host.ports %}
+                            <li>{{ port }}</li>
+                            {% endfor %}
+                        </ul>
                     {% else %}
                         Aucun port détecté
                     {% endif %}

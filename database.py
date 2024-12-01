@@ -51,6 +51,8 @@ def insert_scan():
     conn.commit()
     scan_id = cursor.lastrowid
     conn.close()
+
+    print(f"Scan inséré avec ID : {scan_id}")  # Log pour débogage
     return scan_id
 
 # Fonction pour insérer ou mettre à jour un hôte
@@ -70,6 +72,8 @@ def insert_or_update_host(ip, hostname):
     cursor.execute("SELECT id FROM hosts WHERE ip = ?", (ip,))
     host_id = cursor.fetchone()[0]
     conn.close()
+
+    print(f"Hôte inséré/mis à jour avec ID : {host_id}")  # Log pour débogage
     return host_id
 
 # Fonction pour insérer les résultats d'un scan
@@ -84,6 +88,8 @@ def insert_scan_result(scan_id, host_id, state, ports):
     """, (scan_id, host_id, state, ports))
     conn.commit()
     conn.close()
+
+    print(f"Résultat de scan inséré pour scan ID : {scan_id}, host ID : {host_id}")  # Log pour débogage
 
 # Fonction pour synchroniser les résultats d'un scan
 def sync_inventory(scan_results):
@@ -109,7 +115,7 @@ def fetch_hosts():
 
     # Récupérer les données jointes des hôtes et leurs résultats
     cursor.execute("""
-        SELECT h.ip, h.hostname, sr.state, sr.ports, s.timestamp
+        SELECT h.id, h.ip, h.hostname, sr.state, sr.ports, s.timestamp
         FROM hosts h
         JOIN scan_results sr ON h.id = sr.host_id
         JOIN scans s ON sr.scan_id = s.id
@@ -122,7 +128,23 @@ def fetch_hosts():
     rows = cursor.fetchall()
 
     conn.close()
-    return [{"ip": row[0], "hostname": row[1], "state": row[2], "ports": row[3], "last_scan": row[4]} for row in rows]
+
+    print(f"{len(rows)} hôtes récupérés")  # Log pour débogage
+    return [{"id": row[0], "ip": row[1], "hostname": row[2], "state": row[3], "ports": row[4], "last_scan": row[5]} for row in rows]
+
+# Fonction pour compter le nombre total de scans
+def count_total_scans():
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    # Compter le nombre total de scans
+    cursor.execute("SELECT COUNT(*) FROM scans")
+    total_scans = cursor.fetchone()[0]
+
+    conn.close()
+
+    print(f"Nombre total de scans : {total_scans}")  # Log pour débogage
+    return total_scans
 
 # Fonction pour récupérer les tendances des scans
 def get_scan_trends():
@@ -142,4 +164,6 @@ def get_scan_trends():
     trends = cursor.fetchall()
 
     conn.close()
+
+    print(f"{len(trends)} tendances récupérées")  # Log pour débogage
     return [{"timestamp": row[0], "up_count": row[1], "down_count": row[2]} for row in trends]

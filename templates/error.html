@@ -7,41 +7,59 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
+            margin: 0;
             padding: 0;
             background-color: #f8d7da;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .error-container {
+            max-width: 600px;
+            padding: 20px;
+            border: 1px solid #f5c2c7;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .error-icon {
+            font-size: 50px;
             color: #842029;
+            margin-bottom: 10px;
         }
         h1 {
             color: #842029;
+            margin-bottom: 10px;
         }
         p {
             font-size: 18px;
+            color: #333;
+            margin-bottom: 20px;
         }
-        .error-container {
-            padding: 20px;
-            border: 1px solid #f5c2c7;
-            border-radius: 5px;
-            background-color: #f8d7da;
-        }
-        .back-link {
+        .back-button {
             display: inline-block;
-            margin-top: 20px;
-            color: #842029;
+            padding: 10px 20px;
+            color: #fff;
+            background-color: #842029;
             text-decoration: none;
+            border-radius: 5px;
             font-size: 16px;
             font-weight: bold;
+            transition: background-color 0.3s ease;
         }
-        .back-link:hover {
-            text-decoration: underline;
+        .back-button:hover {
+            background-color: #6a1c22;
         }
     </style>
 </head>
 <body>
     <div class="error-container">
+        <div class="error-icon">⚠️</div>
         <h1>Une erreur est survenue</h1>
         <p>{{ message }}</p>
-        <a href="/" class="back-link">Retourner à l'accueil</a>
+        <a href="/" class="back-button">Retourner à l'accueil</a>
     </div>
 </body>
 </html>

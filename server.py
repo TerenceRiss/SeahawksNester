@@ -3,6 +3,7 @@ from database import init_db, fetch_hosts, sync_inventory
 from prometheus_client import Counter, generate_latest, CollectorRegistry, Gauge
 import json
 import logging
+import nmap
 
 app = Flask(
     __name__,
@@ -24,6 +25,7 @@ API_TOKEN = "my_secret_api_token"
 
 # Initialisation des métriques Prometheus
 registry = CollectorRegistry()
+print(registry)
 scan_requests_total = Counter(
     "scan_requests_total", "Nombre total de requêtes de scan", registry=registry
 )
@@ -41,6 +43,39 @@ def authenticate(request):
         logging.warning("Échec de l'authentification avec le token.")
         return False
     return True
+
+# Fonction pour effectuer un scan réseau
+def perform_scan(network_range, port_argument):
+    """
+    Effectue un scan réseau en utilisant nmap.
+    """
+    try:
+        # Initialiser le scanner Nmap
+        nm = nmap.PortScanner()
+
+        # Lancer le scan
+        scan_results = nm.scan(hosts=network_range, arguments=f"-sS {port_argument}")
+
+        # Parser les résultats du scan
+        hosts = []
+        for host in nm.all_hosts():
+            state = nm[host].state()
+            hostname = nm[host].hostname()
+            ports = []
+            if "tcp" in nm[host]:
+                for port, port_data in nm[host]["tcp"].items():
+                    ports.append(f"{port}/{port_data['name']}")
+            hosts.append({
+                "ip": host,
+                "hostname": hostname or "Unknown",
+                "state": state,
+                "ports": ports,
+            })
+
+        return hosts
+    except Exception as e:
+        logging.error(f"Erreur lors du scan Nmap : {e}")
+        raise RuntimeError(f"Impossible de réaliser le scan : {e}")
 
 # Route pour vérifier si le serveur fonctionne
 @app.route("/")
@@ -84,6 +119,35 @@ def metrics():
     except Exception as e:
         logging.error(f"Erreur lors de la génération des métriques : {e}")
         return jsonify({"message": "Erreur lors de la génération des métriques", "status": "error"}), 500
+
+# Route pour lancer un scan avec des options personnalisées
+@app.route("/scan", methods=["POST"])
+def scan():
+    try:
+        # Récupérer les informations du formulaire
+        network_range = request.form.get("network_range")
+        ports = request.form.get("ports", "22,80,443").replace(" ", "")
+
+        if not network_range:
+            return render_template("error.html", message="Plage IP non spécifiée.")
+
+        # Préparer l'argument des ports
+        port_argument = f"-p {ports}"
+
+        logging.info(f"Scan lancé sur {network_range} avec les ports {ports}")
+
+        # Lancer le scan
+        scan_results = perform_scan(network_range, port_argument)
+
+        logging.info(f"Résultats du scan : {scan_results}")
+
+        # Synchroniser l'inventaire
+        sync_inventory(scan_results)
+
+        return render_template("results.html", hosts=scan_results, network_range=network_range)
+    except Exception as e:
+        logging.error(f"Erreur lors du scan : {e}")
+        return render_template("error.html", message=f"Erreur : {str(e)}")
 
 # Route pour afficher les données enregistrées
 @app.route("/view-data", methods=["GET"])

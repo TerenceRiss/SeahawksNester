@@ -18,10 +18,10 @@ def measure_latency():
             latency_ms = round(latency * 1000, 2)  # Conversion en millisecondes
             return latency_ms
         else:
-            return None
+            return "Indisponible"
     except Exception as e:
         print(f"Erreur lors de la mesure de latence : {e}")
-        return None
+        return "Erreur"
 
 @app.route('/')
 def home():
@@ -30,26 +30,32 @@ def home():
 @app.route('/scan', methods=['POST'])
 def scan():
     network_range = request.form.get('network_range')
+    ports = request.form.get('ports', '22,80,443,3389').replace(" ", "")  # Ports par défaut
+
     if not network_range:
         return render_template('error.html', message="Veuillez entrer une plage IP.")
+
+    if not ports:
+        return render_template('error.html', message="Veuillez spécifier les ports à scanner.")
 
     try:
         # Lancer le scan
         nm = nmap.PortScanner()
-        scan_result = nm.scan(hosts=network_range, arguments='-sS -p 22,80,443,3389')  # Scan rapide sur ports spécifiques
+        scan_command = f"-sS -p {ports}"
+        scan_result = nm.scan(hosts=network_range, arguments=scan_command)
         hosts = []
         for host in nm.all_hosts():
             state = nm[host].state()
             hostname = nm[host].hostname()
-            ports = []
+            ports_list = []
             if "tcp" in nm[host]:
                 for port, port_data in nm[host]["tcp"].items():
-                    ports.append(f"{port}/{port_data['name']}")
+                    ports_list.append(f"{port}/{port_data['name']}")
             hosts.append({
                 "ip": host,
                 "hostname": hostname or "Unknown",
                 "state": state,
-                "ports": ports
+                "ports": ports_list
             })
 
         # Mesurer la latence WAN
@@ -64,7 +70,7 @@ def scan():
         headers = {"Authorization": f"Bearer {API_TOKEN}"}
         response = requests.post(SERVER_URL, json=results, headers=headers)
         if response.status_code != 200:
-            return render_template('error.html', message="Erreur lors de l'envoi au serveur.")
+            return render_template('error.html', message="Erreur lors de l'envoi des résultats au serveur.")
 
         # Passer les résultats au template
         return render_template(
@@ -73,8 +79,10 @@ def scan():
             network_range=network_range,
             latency_ms=latency
         )
+    except requests.exceptions.ConnectionError:
+        return render_template('error.html', message="Impossible de se connecter au serveur. Vérifiez que le serveur est en cours d'exécution.")
     except Exception as e:
-        return render_template('error.html', message=str(e))
+        return render_template('error.html', message=f"Erreur pendant le scan : {str(e)}")
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=8000)
