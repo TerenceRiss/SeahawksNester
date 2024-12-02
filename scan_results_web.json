@@ -1,25 +1,4 @@
 {
-    "hosts": [
-        {
-            "ip": "10.60.61.55",
-            "hostname": "Unknown",
-            "state": "up",
-            "ports": [
-                "22/ssh",
-                "80/http",
-                "443/https"
-            ]
-        },
-        {
-            "ip": "10.60.63.250",
-            "hostname": "Unknown",
-            "state": "up",
-            "ports": [
-                "22/ssh",
-                "80/http",
-                "443/https"
-            ]
-        }
-    ],
-    "latency_ms": 19.19
+    "hosts": [],
+    "latency_ms": 37.38
 }
