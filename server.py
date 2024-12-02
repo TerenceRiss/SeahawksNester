@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, render_template
-from database import init_db, fetch_hosts, sync_inventory
+from database import init_db, fetch_hosts, sync_inventory, get_scan_trends
 from prometheus_client import Counter, generate_latest, CollectorRegistry, Gauge
 import json
 import logging
@@ -169,6 +169,9 @@ def view_data():
             ip_prefix = ".".join(row["ip"].split(".")[:3])
             ip_distribution[ip_prefix] = ip_distribution.get(ip_prefix, 0) + 1
 
+        # Récupération des tendances des scans
+        scan_trends = get_scan_trends()
+
         logging.info(f"Données récupérées pour le tableau: {rows}")
         logging.info(f"Distribution IP : {ip_distribution}")
 
@@ -179,6 +182,7 @@ def view_data():
             total_down=json.dumps(total_down),
             ip_labels_json=json.dumps(list(ip_distribution.keys())),
             ip_data_json=json.dumps(list(ip_distribution.values())),
+            scan_trends=json.dumps(scan_trends),
             state_filter=state_filter,
             ip_filter=ip_filter,
         )
