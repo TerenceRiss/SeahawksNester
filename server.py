@@ -25,7 +25,6 @@ API_TOKEN = "my_secret_api_token"
 
 # Initialisation des métriques Prometheus
 registry = CollectorRegistry()
-print(registry)
 scan_requests_total = Counter(
     "scan_requests_total", "Nombre total de requêtes de scan", registry=registry
 )
