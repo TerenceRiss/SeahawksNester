@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, render_template
-from database import init_db, fetch_hosts, sync_inventory, get_scan_trends
+from database import init_db, fetch_hosts, sync_inventory, get_scan_trends, fetch_top_ports
 from prometheus_client import Counter, generate_latest, CollectorRegistry, Gauge
 import json
 import logging
@@ -169,11 +169,14 @@ def view_data():
             ip_prefix = ".".join(row["ip"].split(".")[:3])
             ip_distribution[ip_prefix] = ip_distribution.get(ip_prefix, 0) + 1
 
-        # Récupération des tendances des scans
-        scan_trends = get_scan_trends()
+        # Récupération des ports les plus utilisés
+        top_ports = fetch_top_ports(limit=5)
+        port_labels = [f"{item['port']} ({item['service']})" for item in top_ports]
+        port_data = [item['count'] for item in top_ports]
 
         logging.info(f"Données récupérées pour le tableau: {rows}")
         logging.info(f"Distribution IP : {ip_distribution}")
+        logging.info(f"Ports les plus utilisés : {top_ports}")
 
         return render_template(
             "view_data.html",
@@ -182,7 +185,8 @@ def view_data():
             total_down=json.dumps(total_down),
             ip_labels_json=json.dumps(list(ip_distribution.keys())),
             ip_data_json=json.dumps(list(ip_distribution.values())),
-            scan_trends=json.dumps(scan_trends),
+            port_labels_json=json.dumps(port_labels),
+            port_data_json=json.dumps(port_data),
             state_filter=state_filter,
             ip_filter=ip_filter,
         )

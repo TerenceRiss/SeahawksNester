@@ -38,6 +38,20 @@ def init_db():
         )
     """)
 
+    # Table pour les ports
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS ports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            scan_id INTEGER,
+            host_id INTEGER,
+            port_number INTEGER,
+            protocol TEXT,
+            service_name TEXT,
+            FOREIGN KEY (scan_id) REFERENCES scans(id) ON DELETE CASCADE,
+            FOREIGN KEY (host_id) REFERENCES hosts(id) ON DELETE CASCADE
+        )
+    """)
+
     conn.commit()
     conn.close()
 
@@ -91,13 +105,27 @@ def insert_scan_result(scan_id, host_id, state, ports):
 
     print(f"Résultat de scan inséré pour scan ID : {scan_id}, host ID : {host_id}")  # Log pour débogage
 
+# Fonction pour insérer les ports scannés
+def insert_ports(scan_id, host_id, ports):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    for port in ports:
+        port_number, service_name = port.split("/")
+        cursor.execute("""
+            INSERT INTO ports (scan_id, host_id, port_number, protocol, service_name)
+            VALUES (?, ?, ?, ?, ?)
+        """, (scan_id, host_id, int(port_number), "tcp", service_name))
+    conn.commit()
+    conn.close()
+
 # Fonction pour synchroniser les résultats d'un scan
 def sync_inventory(scan_results):
     # Insérer un nouveau scan
     scan_id = insert_scan()
 
     for result in scan_results:
-        # Ajouter ou mettre à jour l'hôte
+        # Ajouter ou mettre à jour un hôte
         host_id = insert_or_update_host(result["ip"], result.get("hostname", "Unknown"))
 
         # Insérer les résultats du scan
@@ -108,6 +136,9 @@ def sync_inventory(scan_results):
             ports=", ".join(result.get("ports", []))
         )
 
+        # Insérer les ports associés
+        insert_ports(scan_id, host_id, result.get("ports", []))
+
 # Fonction pour récupérer tous les hôtes avec leurs derniers états
 def fetch_hosts():
     conn = sqlite3.connect(DB_NAME)
@@ -115,20 +146,21 @@ def fetch_hosts():
 
     # Récupérer les données jointes des hôtes et leurs résultats
     cursor.execute("""
-        SELECT h.id, h.ip, h.hostname, sr.state, sr.ports, s.timestamp
+        SELECT h.id, h.ip, h.hostname, sr.state, GROUP_CONCAT(p.port_number || '/' || p.service_name, ', ') AS ports, s.timestamp
         FROM hosts h
         JOIN scan_results sr ON h.id = sr.host_id
         JOIN scans s ON sr.scan_id = s.id
+        LEFT JOIN ports p ON h.id = p.host_id
         WHERE sr.id = (
             SELECT MAX(sr2.id)
             FROM scan_results sr2
             WHERE sr2.host_id = h.id
         )
+        GROUP BY h.id
     """)
     rows = cursor.fetchall()
 
     conn.close()
-
     print(f"{len(rows)} hôtes récupérés")  # Log pour débogage
     return [{"id": row[0], "ip": row[1], "hostname": row[2], "state": row[3], "ports": row[4], "last_scan": row[5]} for row in rows]
 
@@ -142,9 +174,25 @@ def count_total_scans():
     total_scans = cursor.fetchone()[0]
 
     conn.close()
-
     print(f"Nombre total de scans : {total_scans}")  # Log pour débogage
     return total_scans
+
+# Fonction pour récupérer les ports les plus utilisés
+def fetch_top_ports(limit=5):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT port_number, service_name, COUNT(*) AS count
+        FROM ports
+        GROUP BY port_number, service_name
+        ORDER BY count DESC
+        LIMIT ?
+    """, (limit,))
+    ports = cursor.fetchall()
+
+    conn.close()
+    return [{"port": row[0], "service": row[1], "count": row[2]} for row in ports]
 
 # Fonction pour récupérer les tendances des scans
 def get_scan_trends():
@@ -164,6 +212,5 @@ def get_scan_trends():
     trends = cursor.fetchall()
 
     conn.close()
-
     print(f"{len(trends)} tendances récupérées")  # Log pour débogage
     return [{"timestamp": row[0], "up_count": row[1], "down_count": row[2]} for row in trends]

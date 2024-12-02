@@ -45,9 +45,8 @@
         .chart-right {
             width: 60%;
         }
-        .tooltip {
-            text-align: center;
-            font-size: 0.85em;
+        .chart-full {
+            width: 100%;
         }
     </style>
 </head>
@@ -112,6 +111,11 @@
                 <canvas id="ipChart" data-ip-labels="{{ ip_labels_json }}" data-ip-data="{{ ip_data_json }}"></canvas>
             </div>
         </div>
+        <!-- Graphique : Ports les plus utilisés -->
+        <div class="chart-container mt-4">
+            <h3>Distribution des Ports Utilisés</h3>
+            <canvas id="portsChart" data-port-labels="{{ port_labels_json }}" data-port-data="{{ port_data_json }}" style="max-width: 400px; max-height: 400px;"></canvas>
+        </div>
 
         <!-- Tableau des données -->
         <h2 class="mt-4">Tableau des Données</h2>
@@ -147,6 +151,7 @@
     <script>
         const stateChart = document.getElementById('stateChart');
         const ipChart = document.getElementById('ipChart');
+        const portsChart = document.getElementById('portsChart');
 
         if (stateChart) {
             new Chart(stateChart, {
@@ -174,10 +179,10 @@
             new Chart(ipChart, {
                 type: 'bar',
                 data: {
-                    labels: JSON.parse(ipChart.dataset.ipLabels),
+                    labels: JSON.parse(ipChart.dataset.ipLabels || '[]'),
                     datasets: [{
                         label: 'Nombre d\'hôtes',
-                        data: JSON.parse(ipChart.dataset.ipData),
+                        data: JSON.parse(ipChart.dataset.ipData || '[]'),
                         backgroundColor: '#007bff',
                     }]
                 },
@@ -186,6 +191,27 @@
                     scales: {
                         y: {
                             beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        if (portsChart) {
+            new Chart(portsChart, {
+                type: 'pie',
+                data: {
+                    labels: JSON.parse(portsChart.dataset.portLabels || '[]'),
+                    datasets: [{
+                        data: JSON.parse(portsChart.dataset.portData || '[]'),
+                        backgroundColor: ['#4caf50', '#2196f3', '#ffc107', '#f44336', '#9c27b0'],
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right',
                         }
                     }
                 }
