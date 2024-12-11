@@ -1,8 +1,38 @@
 {
     "hosts": [
         {
-            "ip": "8.8.8.8",
-            "hostname": "dns.google",
+            "ip": "192.168.0.115",
+            "hostname": "Unknown",
+            "state": "up",
+            "ports": [
+                "22/ssh",
+                "80/http",
+                "443/https"
+            ]
+        },
+        {
+            "ip": "192.168.0.124",
+            "hostname": "Unknown",
+            "state": "up",
+            "ports": [
+                "22/ssh",
+                "80/http",
+                "443/https"
+            ]
+        },
+        {
+            "ip": "192.168.0.254",
+            "hostname": "Unknown",
+            "state": "up",
+            "ports": [
+                "22/ssh",
+                "80/http",
+                "443/https"
+            ]
+        },
+        {
+            "ip": "192.168.0.9",
+            "hostname": "Unknown",
             "state": "up",
             "ports": [
                 "22/ssh",
@@ -11,5 +41,5 @@
             ]
         }
     ],
-    "latency_ms": 49.15
+    "latency_ms": 240.04
 }
