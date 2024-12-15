@@ -8,6 +8,16 @@ def init_db():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
 
+       # Table pour les utilisateurs
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            role TEXT DEFAULT 'user'
+        )
+    """)
+
     # Table pour les scans
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS scans (
@@ -54,6 +64,28 @@ def init_db():
 
     conn.commit()
     conn.close()
+
+# Ajout de l'utilisateur dans la base de données
+def add_user(username, password):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    try:
+        cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
+        conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return False
+    finally:
+        conn.close()
+
+# Récupération d'un utilisateur par nom d'utilisateur
+def get_user(username):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, username, password, role FROM users WHERE username = ?", (username,))
+    user = cursor.fetchone()
+    conn.close()
+    return user
 
 # Fonction pour insérer un nouveau scan
 def insert_scan():

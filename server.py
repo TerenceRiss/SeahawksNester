@@ -1,9 +1,14 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, session
 from database import init_db, fetch_hosts, sync_inventory, get_scan_trends, fetch_top_ports
 from prometheus_client import Counter, generate_latest, CollectorRegistry, Gauge
+from werkzeug.security import generate_password_hash, check_password_hash
+import jwt
+import datetime
 import json
 import logging
 import nmap
+import sqlite3
+from functools import wraps
 
 app = Flask(
     __name__,
@@ -11,6 +16,7 @@ app = Flask(
     static_folder="static",
     template_folder="templates",
 )
+app.config['SECRET_KEY'] = 'my_secret_key'
 
 # Configuration des logs
 logging.basicConfig(
@@ -35,27 +41,26 @@ hosts_down_total = Gauge(
     "hosts_down_total", 'Nombre total d\'hôtes en état "down"', registry=registry
 )
 
-# Fonction utilitaire pour vérifier le token
-def authenticate(request):
-    token = request.headers.get("Authorization")
-    if token != f"Bearer {API_TOKEN}":
-        logging.warning("Échec de l'authentification avec le token.")
-        return False
-    return True
+# Fonction utilitaire pour vérifier le token JWT
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get('x-access-token')
+        if not token:
+            return jsonify({'message': 'Token manquant !'}), 401
+        try:
+            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
+            current_user = data['username']
+        except Exception as e:
+            return jsonify({'message': 'Token invalide !'}), 401
+        return f(current_user, *args, **kwargs)
+    return decorated
 
 # Fonction pour effectuer un scan réseau
 def perform_scan(network_range, port_argument):
-    """
-    Effectue un scan réseau en utilisant nmap.
-    """
     try:
-        # Initialiser le scanner Nmap
         nm = nmap.PortScanner()
-
-        # Lancer le scan
         scan_results = nm.scan(hosts=network_range, arguments=f"-sS {port_argument}")
-
-        # Parser les résultats du scan
         hosts = []
         for host in nm.all_hosts():
             state = nm[host].state()
@@ -70,7 +75,6 @@ def perform_scan(network_range, port_argument):
                 "state": state,
                 "ports": ports,
             })
-
         return hosts
     except Exception as e:
         logging.error(f"Erreur lors du scan Nmap : {e}")
@@ -82,44 +86,44 @@ def home():
     logging.info("Requête GET sur la route /")
     return "Seahawks Nester Server is running!"
 
-# Route pour recevoir les données scannées
-@app.route("/receive-data", methods=["POST"])
-def receive_data():
-    if not authenticate(request):
-        logging.warning("Requête non autorisée sur /receive-data.")
-        return jsonify({"message": "Non autorisé", "status": "error"}), 401
-
+# Route pour l'inscription des utilisateurs
+@app.route("/register", methods=["POST"])
+def register():
+    data = request.get_json()
+    username = data.get("username")
+    password = data.get("password")
+    if not username or not password:
+        return jsonify({"message": "Nom d'utilisateur et mot de passe requis"}), 400
+    hashed_password = generate_password_hash(password)
+    conn = sqlite3.connect("seahawks.db")
+    cursor = conn.cursor()
     try:
-        data = request.get_json()
-        logging.info(f"Données reçues : {data}")
+        cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed_password))
+        conn.commit()
+        return jsonify({"message": "Utilisateur enregistré avec succès"}), 201
+    except sqlite3.IntegrityError:
+        return jsonify({"message": "Nom d'utilisateur déjà utilisé"}), 400
+    finally:
+        conn.close()
 
-        # Synchroniser les résultats des scans
-        sync_inventory(data.get("hosts", []))
+# Route pour la connexion des utilisateurs
+@app.route("/login", methods=["POST"])
+def login():
+    data = request.get_json()
+    username = data.get("username")
+    password = data.get("password")
+    if not username or not password:
+        return jsonify({"message": "Nom d'utilisateur et mot de passe requis"}), 400
+    conn = sqlite3.connect("seahawks.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT password FROM users WHERE username = ?", (username,))
+    user = cursor.fetchone()
+    conn.close()
+    if user and check_password_hash(user[0], password):
+        token = jwt.encode({'username': username, 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)}, app.config['SECRET_KEY'], algorithm="HS256")
+        return jsonify({"token": token})
+    return jsonify({"message": "Identifiants incorrects"}), 401
 
-        # Mise à jour des métriques
-        scan_requests_total.inc()
-        hosts_up = len([host for host in data.get("hosts", []) if host.get("state") == "up"])
-        hosts_down = len([host for host in data.get("hosts", []) if host.get("state") == "down"])
-        hosts_up_total.set(hosts_up)
-        hosts_down_total.set(hosts_down)
-
-        logging.info("Données synchronisées et sauvegardées avec succès.")
-        return jsonify({"message": "Données reçues et sauvegardées avec succès!", "status": "success"}), 200
-    except Exception as e:
-        logging.error(f"Erreur lors de la réception des données : {e}")
-        return jsonify({"message": "Erreur lors de la réception des données", "status": "error"}), 500
-
-# Route pour afficher les métriques Prometheus
-@app.route("/metrics", methods=["GET"])
-def metrics():
-    try:
-        logging.info("Requête GET sur la route /metrics")
-        return generate_latest(registry), 200, {"Content-Type": "text/plain; charset=utf-8"}
-    except Exception as e:
-        logging.error(f"Erreur lors de la génération des métriques : {e}")
-        return jsonify({"message": "Erreur lors de la génération des métriques", "status": "error"}), 500
-
-# Route pour afficher les données enregistrées
 @app.route("/view-data", methods=["GET"])
 def view_data():
     try:
@@ -170,6 +174,24 @@ def view_data():
     except Exception as e:
         logging.error(f"Erreur lors de la génération des données pour /view-data : {e}")
         return jsonify({"message": "Erreur interne du serveur", "details": str(e)}), 500
+    
+# Route protégée pour recevoir les données scannées
+@app.route("/receive-data", methods=["POST"])
+@token_required
+def receive_data(current_user):
+    try:
+        data = request.get_json()
+        logging.info(f"Données reçues par {current_user} : {data}")
+        sync_inventory(data.get("hosts", []))
+        scan_requests_total.inc()
+        hosts_up = len([host for host in data.get("hosts", []) if host.get("state") == "up"])
+        hosts_down = len([host for host in data.get("hosts", []) if host.get("state") == "down"])
+        hosts_up_total.set(hosts_up)
+        hosts_down_total.set(hosts_down)
+        return jsonify({"message": "Données sauvegardées", "status": "success"}), 200
+    except Exception as e:
+        logging.error(f"Erreur lors de la réception des données : {e}")
+        return jsonify({"message": "Erreur interne du serveur"}), 500
 
 if __name__ == "__main__":
     init_db()
