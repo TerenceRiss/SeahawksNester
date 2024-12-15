@@ -34,6 +34,9 @@
             text-align: center;
             margin-top: 20px;
         }
+        .navbar {
+            margin-bottom: 20px;
+        }
     </style>
     <script>
         function showLoading() {
@@ -42,6 +45,19 @@
     </script>
 </head>
 <body>
+    <!-- Barre de navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Seahawks Monitoring</a>
+            <div class="collapse navbar-collapse justify-content-end">
+                <span class="navbar-text me-3">
+                    Connecté en tant que : <strong>{{ session['username'] }}</strong>
+                </span>
+                <a href="/logout" class="btn btn-danger">Déconnecter</a>
+            </div>
+        </div>
+    </nav>
+
     <div class="container">
         <h1>Seahawks Monitoring</h1>
         <p class="text-center text-muted">

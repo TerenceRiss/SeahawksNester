@@ -84,11 +84,17 @@ def register():
             return redirect(url_for('register'))
     return render_template('register.html')
 
+# @app.route('/logout')
+# def logout():
+#     session.clear()
+#     flash("Vous avez été déconnecté.", "info")
+#     return redirect(url_for('login'))
+
 @app.route('/logout')
 def logout():
-    session.clear()
-    flash("Vous avez été déconnecté.", "info")
-    return redirect(url_for('login'))
+    session.pop('token', None)  # Supprimer le token de la session
+    session.pop('username', None)  # Supprimer le nom d'utilisateur
+    return redirect(url_for('login'))  # Rediriger vers la page de connexion
 
 @app.route('/scan', methods=['GET', 'POST'])
 def scan_form():
