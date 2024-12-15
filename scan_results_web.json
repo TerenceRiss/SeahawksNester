@@ -1,7 +1,7 @@
 {
     "hosts": [
         {
-            "ip": "192.168.0.115",
+            "ip": "192.168.0.11",
             "hostname": "Unknown",
             "state": "up",
             "ports": [
@@ -11,7 +11,7 @@
             ]
         },
         {
-            "ip": "192.168.0.124",
+            "ip": "192.168.0.115",
             "hostname": "Unknown",
             "state": "up",
             "ports": [
@@ -31,6 +31,16 @@
             ]
         },
         {
+            "ip": "192.168.0.72",
+            "hostname": "Unknown",
+            "state": "up",
+            "ports": [
+                "22/ssh",
+                "80/http",
+                "443/https"
+            ]
+        },
+        {
             "ip": "192.168.0.9",
             "hostname": "Unknown",
             "state": "up",
@@ -41,5 +51,5 @@
             ]
         }
     ],
-    "latency_ms": 240.04
+    "latency_ms": 15.88
 }

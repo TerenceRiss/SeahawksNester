@@ -119,35 +119,6 @@ def metrics():
         logging.error(f"Erreur lors de la génération des métriques : {e}")
         return jsonify({"message": "Erreur lors de la génération des métriques", "status": "error"}), 500
 
-# Route pour lancer un scan avec des options personnalisées
-@app.route("/scan", methods=["POST"])
-def scan():
-    try:
-        # Récupérer les informations du formulaire
-        network_range = request.form.get("network_range")
-        ports = request.form.get("ports", "22,80,443").replace(" ", "")
-
-        if not network_range:
-            return render_template("error.html", message="Plage IP non spécifiée.")
-
-        # Préparer l'argument des ports
-        port_argument = f"-p {ports}"
-
-        logging.info(f"Scan lancé sur {network_range} avec les ports {ports}")
-
-        # Lancer le scan
-        scan_results = perform_scan(network_range, port_argument)
-
-        logging.info(f"Résultats du scan : {scan_results}")
-
-        # Synchroniser l'inventaire
-        sync_inventory(scan_results)
-
-        return render_template("results.html", hosts=scan_results, network_range=network_range)
-    except Exception as e:
-        logging.error(f"Erreur lors du scan : {e}")
-        return render_template("error.html", message=f"Erreur : {str(e)}")
-
 # Route pour afficher les données enregistrées
 @app.route("/view-data", methods=["GET"])
 def view_data():
@@ -169,15 +140,18 @@ def view_data():
             ip_prefix = ".".join(row["ip"].split(".")[:3])
             ip_distribution[ip_prefix] = ip_distribution.get(ip_prefix, 0) + 1
 
+        # Récupération des tendances des scans
+        scan_trends = get_scan_trends()
+        timestamps = [trend["timestamp"] for trend in scan_trends]
+        up_counts = [trend["up_count"] for trend in scan_trends]
+        down_counts = [trend["down_count"] for trend in scan_trends]
+
         # Récupération des ports les plus utilisés
         top_ports = fetch_top_ports(limit=5)
         port_labels = [f"{item['port']} ({item['service']})" for item in top_ports]
         port_data = [item['count'] for item in top_ports]
 
-        logging.info(f"Données récupérées pour le tableau: {rows}")
-        logging.info(f"Distribution IP : {ip_distribution}")
-        logging.info(f"Ports les plus utilisés : {top_ports}")
-
+        logging.info(f"Tendances : {scan_trends}")
         return render_template(
             "view_data.html",
             rows=rows,
@@ -185,6 +159,9 @@ def view_data():
             total_down=json.dumps(total_down),
             ip_labels_json=json.dumps(list(ip_distribution.keys())),
             ip_data_json=json.dumps(list(ip_distribution.values())),
+            scan_trends_labels=json.dumps(timestamps),
+            scan_trends_up=json.dumps(up_counts),
+            scan_trends_down=json.dumps(down_counts),
             port_labels_json=json.dumps(port_labels),
             port_data_json=json.dumps(port_data),
             state_filter=state_filter,

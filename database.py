@@ -38,7 +38,7 @@ def init_db():
         )
     """)
 
-    # Table pour les ports
+    # Table pour les ports scannés
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS ports (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -214,3 +214,7 @@ def get_scan_trends():
     conn.close()
     print(f"{len(trends)} tendances récupérées")  # Log pour débogage
     return [{"timestamp": row[0], "up_count": row[1], "down_count": row[2]} for row in trends]
+
+if __name__ == "__main__":
+    init_db()
+    print("Base de données initialisée avec succès.")

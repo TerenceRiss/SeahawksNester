@@ -111,10 +111,17 @@
                 <canvas id="ipChart" data-ip-labels="{{ ip_labels_json }}" data-ip-data="{{ ip_data_json }}"></canvas>
             </div>
         </div>
+
         <!-- Graphique : Ports les plus utilisés -->
         <div class="chart-container mt-4">
             <h3>Distribution des Ports Utilisés</h3>
             <canvas id="portsChart" data-port-labels="{{ port_labels_json }}" data-port-data="{{ port_data_json }}" style="max-width: 400px; max-height: 400px;"></canvas>
+        </div>
+
+        <!-- Graphique : Evolution des hôtes UP/DOWN -->
+        <div class="chart-container mt-4">
+            <h3>Évolution des Hôtes UP/DOWN</h3>
+            <canvas id="scanTrendsChart" data-trends-labels="{{ scan_trends_labels }}" data-trends-up="{{ scan_trends_up }}" data-trends-down="{{ scan_trends_down }}"></canvas>
         </div>
 
         <!-- Tableau des données -->
@@ -152,6 +159,7 @@
         const stateChart = document.getElementById('stateChart');
         const ipChart = document.getElementById('ipChart');
         const portsChart = document.getElementById('portsChart');
+        const scanTrendsChart = document.getElementById('scanTrendsChart');
 
         if (stateChart) {
             new Chart(stateChart, {
@@ -164,14 +172,7 @@
                         borderWidth: 1
                     }]
                 },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                        }
-                    }
-                }
+                options: { responsive: true }
             });
         }
 
@@ -185,14 +186,6 @@
                         data: JSON.parse(ipChart.dataset.ipData || '[]'),
                         backgroundColor: '#007bff',
                     }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
                 }
             });
         }
@@ -206,13 +199,37 @@
                         data: JSON.parse(portsChart.dataset.portData || '[]'),
                         backgroundColor: ['#4caf50', '#2196f3', '#ffc107', '#f44336', '#9c27b0'],
                     }]
+                }
+            });
+        }
+
+        if (scanTrendsChart) {
+            new Chart(scanTrendsChart, {
+                type: 'line',
+                data: {
+                    labels: JSON.parse(scanTrendsChart.dataset.trendsLabels || '[]'),
+                    datasets: [
+                        {
+                            label: 'Hôtes UP',
+                            data: JSON.parse(scanTrendsChart.dataset.trendsUp || '[]'),
+                            borderColor: '#4caf50',
+                            backgroundColor: 'rgba(76, 175, 80, 0.2)',
+                            fill: true
+                        },
+                        {
+                            label: 'Hôtes DOWN',
+                            data: JSON.parse(scanTrendsChart.dataset.trendsDown || '[]'),
+                            borderColor: '#f44336',
+                            backgroundColor: 'rgba(244, 67, 54, 0.2)',
+                            fill: true
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'right',
-                        }
+                    scales: {
+                        x: { title: { display: true, text: 'Timestamps des scans' } },
+                        y: { title: { display: true, text: 'Nombre d\'hôtes' }, beginAtZero: true }
                     }
                 }
             });
