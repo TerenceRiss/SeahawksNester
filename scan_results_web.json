@@ -21,6 +21,16 @@
             ]
         },
         {
+            "ip": "192.168.0.124",
+            "hostname": "Unknown",
+            "state": "up",
+            "ports": [
+                "22/ssh",
+                "80/http",
+                "443/https"
+            ]
+        },
+        {
             "ip": "192.168.0.254",
             "hostname": "Unknown",
             "state": "up",
@@ -51,5 +61,5 @@
             ]
         }
     ],
-    "latency_ms": 18.05
+    "latency_ms": 17.04
 }
