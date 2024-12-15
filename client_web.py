@@ -12,6 +12,8 @@ SERVER_URL = "http://127.0.0.1:5000"
 SCAN_URL = f"{SERVER_URL}/receive-data"
 LOGIN_URL = f"{SERVER_URL}/login"
 REGISTER_URL = f"{SERVER_URL}/register"
+APP_VERSION = "1.0.0"
+
 
 def measure_latency():
     """Mesurer la latence WAN en pingant une cible externe."""
@@ -83,12 +85,6 @@ def register():
             flash(f"Erreur lors de l'inscription : {e}", "error")
             return redirect(url_for('register'))
     return render_template('register.html')
-
-# @app.route('/logout')
-# def logout():
-#     session.clear()
-#     flash("Vous avez été déconnecté.", "info")
-#     return redirect(url_for('login'))
 
 @app.route('/logout')
 def logout():
@@ -163,7 +159,7 @@ def scan_form():
             flash(f"Erreur pendant le scan : {e}", "error")
             return render_template('index.html')
 
-    return render_template('index.html')
+    return render_template('index.html', app_version=APP_VERSION)
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=8000)
