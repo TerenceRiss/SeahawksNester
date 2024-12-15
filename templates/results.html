@@ -50,7 +50,7 @@
             color: #0c5460;
             text-align: center;
         }
-        .back-link {
+        .back-link, .data-view-link {
             display: inline-block;
             margin-top: 20px;
             padding: 10px 20px;
@@ -60,8 +60,9 @@
             border-radius: 5px;
             font-size: 16px;
             text-align: center;
+            margin-right: 10px;
         }
-        .back-link:hover {
+        .back-link:hover, .data-view-link:hover {
             background-color: #003366;
         }
         .badge {
@@ -134,7 +135,10 @@
         </tbody>
     </table>
 
-    <!-- Lien retour -->
-    <a href="/" class="back-link">Retourner à l'accueil</a>
+    <!-- Boutons de navigation -->
+    <div class="text-center">
+        <a href="/" class="back-link">Retourner à l'accueil</a>
+        <a href="http://127.0.0.1:5000/view-data" class="data-view-link">Voir les Graphiques</a>
+    </div>
 </body>
 </html>
