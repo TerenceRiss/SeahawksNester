@@ -129,12 +129,21 @@ def view_data():
     try:
         state_filter = request.args.get("state")
         ip_filter = request.args.get("ip")
+        page = int(request.args.get("page", 1))  # Page actuelle
+        per_page = int(request.args.get("per_page", 10))  # Nombre d'éléments par page
 
         rows = fetch_hosts()
         if state_filter:
             rows = [row for row in rows if row["state"] == state_filter]
         if ip_filter:
             rows = [row for row in rows if row["ip"].startswith(ip_filter)]
+
+        # Pagination
+        total_items = len(rows)
+        start = (page - 1) * per_page
+        end = start + per_page
+        paginated_rows = rows[start:end]
+        total_pages = (total_items + per_page - 1) // per_page
 
         # Calcul des métriques pour les graphiques
         total_up = len([row for row in rows if row["state"] == "up"])
@@ -158,7 +167,7 @@ def view_data():
         logging.info(f"Tendances : {scan_trends}")
         return render_template(
             "view_data.html",
-            rows=rows,
+            rows=paginated_rows,
             total_up=json.dumps(total_up),
             total_down=json.dumps(total_down),
             ip_labels_json=json.dumps(list(ip_distribution.keys())),
@@ -170,11 +179,14 @@ def view_data():
             port_data_json=json.dumps(port_data),
             state_filter=state_filter,
             ip_filter=ip_filter,
+            page=page,
+            per_page=per_page,
+            total_pages=total_pages,
         )
     except Exception as e:
         logging.error(f"Erreur lors de la génération des données pour /view-data : {e}")
         return jsonify({"message": "Erreur interne du serveur", "details": str(e)}), 500
-    
+
 # Route protégée pour recevoir les données scannées
 @app.route("/receive-data", methods=["POST"])
 @token_required

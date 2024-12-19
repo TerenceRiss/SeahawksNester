@@ -158,6 +158,37 @@
                 {% endfor %}
             </tbody>
         </table>
+
+        <!-- Pagination -->
+        <nav aria-label="Pagination">
+            <ul class="pagination justify-content-center">
+                {% if page > 1 %}
+                <li class="page-item">
+                    <a class="page-link" href="/view-data?page={{ page - 1 }}&per_page={{ per_page }}&state={{ state_filter or '' }}&ip={{ ip_filter or '' }}">Précédent</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">Précédent</span>
+                </li>
+                {% endif %}
+
+                {% for p in range(1, total_pages + 1) %}
+                <li class="page-item {% if p == page %}active{% endif %}">
+                    <a class="page-link" href="/view-data?page={{ p }}&per_page={{ per_page }}&state={{ state_filter or '' }}&ip={{ ip_filter or '' }}">{{ p }}</a>
+                </li>
+                {% endfor %}
+
+                {% if page < total_pages %}
+                <li class="page-item">
+                    <a class="page-link" href="/view-data?page={{ page + 1 }}&per_page={{ per_page }}&state={{ state_filter or '' }}&ip={{ ip_filter or '' }}">Suivant</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">Suivant</span>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
     </div>
 
     <!-- Script pour les graphiques -->
