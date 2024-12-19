@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, session
+from flask import Flask, request, jsonify, render_template, session, make_response
 from database import init_db, fetch_hosts, sync_inventory, get_scan_trends, fetch_top_ports
 from prometheus_client import Counter, generate_latest, CollectorRegistry, Gauge
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -8,7 +8,11 @@ import json
 import logging
 import nmap
 import sqlite3
+import csv
+from io import StringIO
+from reportlab.pdfgen import canvas
 from functools import wraps
+from io import BytesIO 
 
 app = Flask(
     __name__,
@@ -186,6 +190,42 @@ def view_data():
     except Exception as e:
         logging.error(f"Erreur lors de la génération des données pour /view-data : {e}")
         return jsonify({"message": "Erreur interne du serveur", "details": str(e)}), 500
+
+# Route pour générer un fichier CSV
+@app.route("/download-csv", methods=["GET"])
+def download_csv():
+    rows = fetch_hosts()
+    si = StringIO()
+    writer = csv.writer(si)
+    writer.writerow(["ID", "IP", "Hostname", "State", "Ports", "Last Scan"])
+    for row in rows:
+        writer.writerow([row['id'], row['ip'], row['hostname'], row['state'], row['ports'], row['last_scan']])
+    output = make_response(si.getvalue())
+    output.headers["Content-Disposition"] = "attachment; filename=scan_results.csv"
+    output.headers["Content-type"] = "text/csv"
+    return output
+
+# Route pour générer un fichier PDF
+@app.route("/download-pdf", methods=["GET"])
+def download_pdf():
+    rows = fetch_hosts()
+    output = BytesIO()  # Utilisez BytesIO pour écrire des données binaires
+    pdf = canvas.Canvas(output)
+    pdf.drawString(100, 800, "Rapport des Scans")
+    y = 750
+    for row in rows:
+        pdf.drawString(50, y, f"ID: {row['id']} IP: {row['ip']} State: {row['state']} Ports: {row['ports']}")
+        y -= 20
+        if y < 50:  # Si la page est pleine
+            pdf.showPage()
+            y = 750
+    pdf.save()
+    output.seek(0)  # Réinitialisez le pointeur pour commencer à lire depuis le début
+
+    response = make_response(output.read())
+    response.headers["Content-Disposition"] = "attachment; filename=scan_results.pdf"
+    response.headers["Content-type"] = "application/pdf"
+    return response
 
 # Route protégée pour recevoir les données scannées
 @app.route("/receive-data", methods=["POST"])
