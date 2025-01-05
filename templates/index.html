@@ -60,9 +60,19 @@
 
     <div class="container">
         <h1>Seahawks Monitoring</h1>
+            {% with messages = get_flashed_messages() %}
+              {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-warning">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
         <p class="text-center text-muted">
             Scannez une plage IP et détectez les hôtes actifs ainsi que leurs ports ouverts.
         </p>
+
         <form action="/scan" method="post" onsubmit="showLoading()">
             <div class="mb-3">
                 <label for="network_range" class="form-label">Plage IP à scanner :</label>
