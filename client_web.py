@@ -89,7 +89,7 @@ def register():
 @app.route('/logout')
 def logout():
     session.pop('token', None)  # Supprimer le token de la session
-    session.pop('username', None)  # Supprimer le nom d'utilisateur
+    session.pop('username', None)  # Supprimer le token de nom d'utilisateur
     return redirect(url_for('login'))  # Rediriger vers la page de connexion
 
 @app.route('/scan', methods=['GET', 'POST'])
