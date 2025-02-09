@@ -191,6 +191,16 @@ def view_data():
         logging.error(f"Erreur lors de la génération des données pour /view-data : {e}")
         return jsonify({"message": "Erreur interne du serveur", "details": str(e)}), 500
 
+#route pour les metrics 
+@app.route("/metrics", methods=["GET"])
+def metrics():
+    try:
+        logging.info("Requête GET sur la route /metrics")
+        return generate_latest(registry), 200, {'Content-Type': 'text/plain; charset=utf-8'}
+    except Exception as e:
+        logging.error(f"Erreur lors de la génération des métriques : {e}")
+        return jsonify({"message": "Erreur lors de la génération des métriques", "status": "error"}), 500
+
 # Route pour générer un fichier CSV
 @app.route("/download-csv", methods=["GET"])
 def download_csv():
